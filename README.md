@@ -1,5 +1,7 @@
 Celery daemon
-=========================== 
+===========================
+
+[TOC]
 
 celery 在官方文档中已经说明了如何将一个worker进行daemon，这里结合项目本身的一些情况来说明如何让cmdb中运行的各种worker在后台运行起来.
 
@@ -221,7 +223,7 @@ def add_svn_workflow(wse_id):
             content_object.save()
 ```
 
-## 启动脚本
+## celery worker启动脚本
 1 创建/etc/init.d/celeryd，内容在[celery repo](https://github.com/celery/celery/blob/master/extra/generic-init.d/celeryd)中
 
 2 修改权限
@@ -229,7 +231,7 @@ def add_svn_workflow(wse_id):
 `chown root:root /etc/init.d/celeryd`
 
 
-## 配置
+### 配置
 具体的配置需要根据你的项目的实际情况，可以参考[doc](http://docs.celeryproject.org/en/latest/userguide/daemonizing.html#init-script-celeryd)
 
 在`/etc/default`目录下，创建celeryd文件
@@ -254,7 +256,7 @@ CELERYD_GROUP="root"
 CELERY_CREATE_DIRS=1
 ```
 
-## 修改启动脚本名称和指定配置文件
+###  修改启动脚本名称和指定配置文件
 从`/etc/init.d/celeryd`的说明中可以看到下面这句话:
 
 ```
@@ -276,17 +278,51 @@ CELERY_CREATE_DIRS=1
 以我这里的svn为例，那么/etc/init.d/celeryd重命名为/etc/init.d/svn-worker
 /etc/default/celeryd重命名为/etc/default/svn-worker
 
-## 启动worker daemon
+启动celery worker daemon
 `/etc/init.d/svn-worker start`
 
 
-## 开启另外的一个worker
+## 启动 celery beat daemon
+
+**celery beat**按照我的理解，是一个任务调度器，通过这个**celery beat**来读取定时配置文件里面的内容来发送`task`
+
+然后启动另外的`worker`来获取这些定时任务去执行。
+
+拷贝官方的[启动脚本](https://raw.githubusercontent.com/celery/celery/3.1/extra/generic-init.d/celerybeat)到目录`/etc/init.d/`下
+
+在`/etc/default/`目录下，编辑如下配置文件
+```
+vim /etc/default/celerybeat
+
+CELERY_BIN="/data/code/cy_devops/bin/celery"
+
+CELERY_APP="tasks:app"
+
+CELERYD_CHDIR="/data/www/cmdb/"
+
+
+CELERYD_LOG_FILE="/var/log/celery/celerybeat.log"
+
+CELERYD_PID_FILE="/var/run/celery/celerybeat.pid"
+
+CELERYD_USER="root"
+CELERYD_GROUP="root"
+
+CELERY_CREATE_DIRS=1
+```
+
+现在可以启动`celery beat`来发送定时任务了
+`/etc/init.d/celerybeat`
+
+### 启动执行定时任务的worker
+
+
 cmdb还有一个worker，用来定时修改服务器权限的记录
 
-## 配置启动脚本
+配置启动脚本
 `cp /etc/init.d/svn-worker /etc/init.d/shost-beat-worker`
 
-## 修改配置文件
+修改配置文件
 `cat /etc/default/shost-beat-worker`
 
 ```
@@ -308,5 +344,5 @@ CELERYD_GROUP="root"
 CELERY_CREATE_DIRS=1
 ```
 
-## 启动worker
+启动worker
 `/etc/init.d/shost-beat-worker start`
