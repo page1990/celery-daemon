@@ -323,6 +323,9 @@ cmdb还有一个worker，用来定时修改服务器权限的记录
 `cp /etc/init.d/svn-worker /etc/init.d/shost-beat-worker`
 
 修改配置文件
+
+**这里的配置文件和普通的worker类似，但是需要注意的是不要加上-B参数，因为你已经单独启动了celery beat**
+
 `cat /etc/default/shost-beat-worker`
 
 ```
@@ -332,7 +335,7 @@ CELERY_APP="tasks:app"
 
 CELERYD_CHDIR="/data/www/cmdb/"
 
-CELERYD_OPTS="--time-limit=300 --concurrency=8 --hostname=shost-beat-worker -Q set_user_host -B -l debug"
+CELERYD_OPTS="--time-limit=300 --concurrency=8 --hostname=shost-beat-worker -Q set_user_host -l debug"
 
 CELERYD_LOG_FILE="/var/log/celery/shost-beat-worker.log"
 
